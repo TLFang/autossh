@@ -80,7 +80,7 @@ update_os() {
             expect eof
 EOF
 
-            if [-f "/etc/systemd/system/autossh.service"]
+            if [ -f "/etc/systemd/system/autossh.service" ]
             then
                 echo "autossh.service已存在，请执行 rm /etc/systemd/system/autossh.service 先删除该文件"
             else
@@ -89,6 +89,7 @@ EOF
             fi
             sed -i "/^ExecStart/s/listen_port/${listen_port}/g" $autossh_service
             sed -i "/^ExecStart/s/mapped_port/${mapped_port}/g" $autossh_service
+            sed -i "/^ExecStart/s/host_ip/${host}/g" $autossh_service
             chmod +x /etc/systemd/system/autossh.service || systemctl daemon-reload
             systemctl enable autossh.service && systemctl start autossh.service && systemctl stop autossh.service && systemctl restart autossh.service
             #nohup autossh -p 22 -M $listen_port -NR $mapped_port:localhost:22 root@$host &
