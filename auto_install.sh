@@ -18,6 +18,7 @@ CYAN='\033[0;36m'
 PLAIN='\033[0m'
 #定义常用变量
 sshd_file="/etc/ssh/sshd_config"
+autossh_service="/etc/systemd/system/autossh.service"
 
 checkroot(){
     [[ $EUID -ne 0 ]] && echo -e "${RED}请使用 root 用户运行本脚本！${PLAIN}" && exit 1
@@ -78,9 +79,21 @@ update_os() {
             }
             expect eof
 EOF
-            nohup autossh -p 22 -M $listen_port -NR $mapped_port:localhost:22 root@$host &
-            echo "[ OK ]  The autossh integration is complete,Please press Enter keyboard."
-            echo "autossh -p 22 -M $listen_port -NR $mapped_port:localhost:22 root@$host"
+
+            if [-f "/etc/systemd/system/autossh.service"]
+            then
+                echo "autossh.service已存在，请执行 rm /etc/systemd/system/autossh.service 先删除该文件"
+            else
+                #下载autossh的systemctl守护文件到/etc/systemd/system/
+                wget --user=zc --password=zc http://117.48.146.149:9810/shell/autossh.service -P /etc/systemd/system/
+            fi
+            sed -i "/^ExecStart/s/listen_port/${listen_port}/g" $autossh_service
+            sed -i "/^ExecStart/s/mapped_port/${mapped_port}/g" $autossh_service
+            chmod +x /etc/systemd/system/autossh.service || systemctl daemon-reload
+            systemctl enable autossh.service && systemctl start autossh.service && systemctl stop autossh.service && systemctl restart autossh.service
+            #nohup autossh -p 22 -M $listen_port -NR $mapped_port:localhost:22 root@$host &
+            #echo "[ OK ]  autossh服务已安装完成，请按回车键退出"
+            echo "当前autossh端口是$mapped_port（请使用你的公网主机$host+$mapped_port端口号登录）"
         fi
 
         if [[ ${selection} == 4 ]]; then
@@ -103,6 +116,4 @@ runall() {
 
 runall    
 #
-
-
 
